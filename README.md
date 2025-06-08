@@ -22,14 +22,14 @@ This project is built with the following technologies:
     * HTML5
     * CSS3
     * JavaScript (ES6+)
-    * [Optional: Mention any specific frontend framework/library like React, Vue.js, Angular, etc., if you are using them in your project.]
+   
 * **Styling:**
     * Custom CSS (`style.css`)
     * Google Fonts (Inter)
     * Font Awesome (for icons)
 * **Development Tools:**
     * Git & GitHub (for version control and hosting)
-    * [Optional: Mention any specific IDE like VS Code, or tools like Live Server, npm, etc.]
+
 
 ## 📂 Project Structure
 portfolio/
