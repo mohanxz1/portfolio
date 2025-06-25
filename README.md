@@ -62,7 +62,7 @@ To run this project on your local machine, follow these steps:
 
 ## 🌐 Live Demo
 
-[**View Live Demo**](https://mohanxz1.github.io/site./) *(This is a placeholder for your GitHub Pages URL once it's set up!)*
+[**View Live Demo**](https://mohanxz1.github.io/firstsite/) *(This is a placeholder for your GitHub Pages URL once it's set up!)*
 
 ## 📞 Contact
 
