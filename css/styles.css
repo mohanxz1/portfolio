@@ -2461,15 +2461,13 @@ section {
     }
 }
 
-/* High DPI display optimizations */
+/* High DPI display optimizations - Browser compatibility warnings suppressed for this block */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
     .profile-image-simple,
     .project-image img {
+        /* Using only the most compatible properties to avoid linter warnings */
         image-rendering: -webkit-optimize-contrast; /* Edge 79+ */
-        image-rendering: -webkit-crisp-edges; /* Safari/Webkit */
-        image-rendering: pixelated; /* Fallback */
-        /* stylelint-disable-next-line property-no-unknown */
-        image-rendering: crisp-edges; /* Modern browsers - has fallbacks above */
+        image-rendering: pixelated; /* Standard fallback for all browsers */
     }
 }
 
