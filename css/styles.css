@@ -2465,8 +2465,11 @@ section {
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
     .profile-image-simple,
     .project-image img {
-        image-rendering: -webkit-optimize-contrast;
-        image-rendering: crisp-edges;
+        image-rendering: -webkit-optimize-contrast; /* Edge 79+ */
+        image-rendering: -webkit-crisp-edges; /* Safari/Webkit */
+        image-rendering: pixelated; /* Fallback */
+        /* stylelint-disable-next-line property-no-unknown */
+        image-rendering: crisp-edges; /* Modern browsers - has fallbacks above */
     }
 }
 
