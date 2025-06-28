@@ -274,6 +274,9 @@ function initializeProjectFilters() {
 
 // Contact Form Handling
 function initializeContactForm() {
+    // Initialize EmailJS
+    emailjs.init("YOUR_PUBLIC_KEY"); // You'll need to replace this with your actual EmailJS public key
+    
     contactForm?.addEventListener('submit', handleFormSubmission);
     
     // Form validation
@@ -281,6 +284,15 @@ function initializeContactForm() {
     inputs.forEach(input => {
         input.addEventListener('blur', validateField);
         input.addEventListener('input', clearFieldError);
+        
+        // Add real-time validation feedback
+        input.addEventListener('input', function() {
+            if (this.value.trim() !== '') {
+                this.classList.add('has-value');
+            } else {
+                this.classList.remove('has-value');
+            }
+        });
     });
 }
 
@@ -303,49 +315,90 @@ function handleFormSubmission(e) {
     
     // Show loading state
     const submitButton = contactForm.querySelector('button[type="submit"]');
+    const btnText = submitButton.querySelector('.btn-text');
+    const btnLoading = submitButton.querySelector('.btn-loading');
+    
     contactForm.classList.add('loading');
     submitButton.disabled = true;
+    btnText.style.display = 'none';
+    btnLoading.style.display = 'flex';
     
-    // Simulate form submission (replace with actual API call)
-    setTimeout(() => {
-        // Success simulation
-        showNotification('Thank you for your message! I\'ll get back to you within 24 hours.', 'success');
-        contactForm.reset();
-        clearAllFieldErrors();
-        
-        // Reset loading state
-        contactForm.classList.remove('loading');
-        submitButton.disabled = false;
-    }, 2000);
+    // Prepare email parameters
+    const emailParams = {
+        from_name: formObject.name,
+        from_email: formObject.email,
+        subject: formObject.subject,
+        message: formObject.message,
+        to_email: 'reachout.mohan9@gmail.com' // Your email
+    };
+    
+    // Send email using EmailJS (replace 'YOUR_SERVICE_ID' and 'YOUR_TEMPLATE_ID' with actual values)
+    emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', emailParams)
+        .then(function(response) {
+            console.log('Email sent successfully:', response);
+            showNotification('Thank you for your message! I\'ll get back to you within 24 hours.', 'success');
+            contactForm.reset();
+            clearAllFieldErrors();
+            
+            // Remove has-value class from all inputs
+            const inputs = document.querySelectorAll('.contact-form input, .contact-form textarea');
+            inputs.forEach(input => input.classList.remove('has-value'));
+        })
+        .catch(function(error) {
+            console.error('Email send failed:', error);
+            // Fallback: Create a mailto link
+            const mailtoLink = `mailto:reachout.mohan9@gmail.com?subject=${encodeURIComponent(formObject.subject)}&body=${encodeURIComponent(`From: ${formObject.name} (${formObject.email})\n\nMessage:\n${formObject.message}`)}`;
+            window.open(mailtoLink);
+            showNotification('Opening your email client to send the message. If this doesn\'t work, please email me directly at reachout.mohan9@gmail.com', 'info');
+        })
+        .finally(function() {
+            // Reset loading state
+            contactForm.classList.remove('loading');
+            submitButton.disabled = false;
+            btnText.style.display = 'inline';
+            btnLoading.style.display = 'none';
+        });
 }
 
-function validateForm(data) {
+// Enhanced form validation
+function validateForm(formData) {
     let isValid = true;
+    const fields = {
+        name: {
+            value: formData.name,
+            element: document.getElementById('name'),
+            rules: [
+                { test: (val) => val.length >= 2, message: 'Name must be at least 2 characters long' }
+            ]
+        },
+        email: {
+            value: formData.email,
+            element: document.getElementById('email'),
+            rules: [
+                { test: (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), message: 'Please enter a valid email address' }
+            ]
+        },
+        subject: {
+            value: formData.subject,
+            element: document.getElementById('subject'),
+            rules: [
+                { test: (val) => val.length >= 5, message: 'Subject must be at least 5 characters long' }
+            ]
+        },
+        message: {
+            value: formData.message,
+            element: document.getElementById('message'),
+            rules: [
+                { test: (val) => val.length >= 10, message: 'Message must be at least 10 characters long' }
+            ]
+        }
+    };
     
-    // Name validation
-    if (!data.name || data.name.length < 2) {
-        showFieldError('name', 'Name must be at least 2 characters long.');
-        isValid = false;
-    }
-    
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!data.email || !emailRegex.test(data.email)) {
-        showFieldError('email', 'Please enter a valid email address.');
-        isValid = false;
-    }
-    
-    // Subject validation
-    if (!data.subject || data.subject.length < 3) {
-        showFieldError('subject', 'Subject must be at least 3 characters long.');
-        isValid = false;
-    }
-    
-    // Message validation
-    if (!data.message || data.message.length < 10) {
-        showFieldError('message', 'Message must be at least 10 characters long.');
-        isValid = false;
-    }
+    Object.keys(fields).forEach(fieldName => {
+        const field = fields[fieldName];
+        const isFieldValid = validateField({ target: field.element });
+        if (!isFieldValid) isValid = false;
+    });
     
     return isValid;
 }
@@ -353,94 +406,103 @@ function validateForm(data) {
 function validateField(e) {
     const field = e.target;
     const value = field.value.trim();
+    const fieldName = field.name;
     
-    switch (field.name) {
+    // Remove existing error states
+    field.classList.remove('error', 'success');
+    const existingError = field.parentNode.querySelector('.error-message');
+    if (existingError) existingError.remove();
+    
+    let isValid = true;
+    let errorMessage = '';
+    
+    // Validation rules
+    switch (fieldName) {
         case 'name':
             if (value.length < 2) {
-                showFieldError('name', 'Name must be at least 2 characters long.');
-            } else {
-                clearFieldError('name');
+                isValid = false;
+                errorMessage = 'Name must be at least 2 characters long';
             }
             break;
         case 'email':
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(value)) {
-                showFieldError('email', 'Please enter a valid email address.');
-            } else {
-                clearFieldError('email');
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                isValid = false;
+                errorMessage = 'Please enter a valid email address';
             }
             break;
         case 'subject':
-            if (value.length < 3) {
-                showFieldError('subject', 'Subject must be at least 3 characters long.');
-            } else {
-                clearFieldError('subject');
+            if (value.length < 5) {
+                isValid = false;
+                errorMessage = 'Subject must be at least 5 characters long';
             }
             break;
         case 'message':
             if (value.length < 10) {
-                showFieldError('message', 'Message must be at least 10 characters long.');
-            } else {
-                clearFieldError('message');
+                isValid = false;
+                errorMessage = 'Message must be at least 10 characters long';
             }
             break;
     }
-}
-
-function showFieldError(fieldName, message) {
-    const field = document.getElementById(fieldName);
-    const formGroup = field?.closest('.form-group');
     
-    if (formGroup) {
-        formGroup.classList.add('error');
-        field.style.borderColor = '#ef4444';
-        
-        // Remove existing error message
-        const existingError = formGroup.querySelector('.error-message');
-        if (existingError) {
-            existingError.remove();
-        }
-        
-        // Add new error message
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.style.cssText = `
-            color: #ef4444;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        `;
-        errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
-        formGroup.appendChild(errorDiv);
-    }
-}
-
-function clearFieldError(fieldName) {
-    const field = typeof fieldName === 'string' ? document.getElementById(fieldName) : fieldName.target;
-    const formGroup = field?.closest('.form-group');
-    
-    if (formGroup) {
-        formGroup.classList.remove('error');
-        field.style.borderColor = '';
-        
-        const errorMessage = formGroup.querySelector('.error-message');
-        if (errorMessage) {
-            errorMessage.remove();
+    // Apply validation state
+    if (value.length > 0) {
+        if (isValid) {
+            field.classList.add('success');
+        } else {
+            field.classList.add('error');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = errorMessage;
+            field.parentNode.appendChild(errorDiv);
         }
     }
+    
+    return isValid;
+}
+
+function clearFieldError(e) {
+    const field = e.target;
+    field.classList.remove('error');
+    const errorMessage = field.parentNode.querySelector('.error-message');
+    if (errorMessage) errorMessage.remove();
 }
 
 function clearAllFieldErrors() {
-    const errorMessages = document.querySelectorAll('.error-message');
-    errorMessages.forEach(msg => msg.remove());
-    
-    const inputs = document.querySelectorAll('.contact-form input, .contact-form textarea');
-    inputs.forEach(input => {
-        input.style.borderColor = '';
-        input.closest('.form-group')?.classList.remove('error');
+    const fields = document.querySelectorAll('.contact-form input, .contact-form textarea');
+    fields.forEach(field => {
+        field.classList.remove('error', 'success');
+        const errorMessage = field.parentNode.querySelector('.error-message');
+        if (errorMessage) errorMessage.remove();
     });
+}
+
+// Enhanced notification system
+function showNotification(message, type = 'info', duration = 5000) {
+    // Remove existing notifications
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        ${message}
+        <button class="close-btn" onclick="this.parentElement.remove()">&times;</button>
+    `;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Show notification
+    setTimeout(() => notification.classList.add('show'), 100);
+    
+    // Auto remove
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, duration);
 }
 
 // Notification System
@@ -715,172 +777,27 @@ function initialize() {
     console.log('Portfolio website initialized successfully!');
 }
 
-// WhatsApp Contact Functionality
-function initializeWhatsAppContact() {
-    const whatsappLinks = document.querySelectorAll('.whatsapp-link');
-    const whatsappNumber = '9779826841278'; // Nepal country code + number
-    
-    whatsappLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const message = encodeURIComponent("Hi Mohan! I found your portfolio and would like to connect with you.");
-            const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
-            window.open(whatsappUrl, '_blank');
-        });
-    });
-}
-
-// Enhanced Contact Method Click Handlers
-function initializeContactMethods() {
-    const contactMethods = document.querySelectorAll('.contact-method');
-    
-    contactMethods.forEach(method => {
-        const methodInfo = method.querySelector('.method-info h4').textContent.toLowerCase();
-        
-        method.addEventListener('click', () => {
-            if (methodInfo === 'email') {
-                window.location.href = 'mailto:reachout.mohan9@gmail.com';
-            } else if (methodInfo === 'github') {
-                window.open('https://github.com/mohanxz1', '_blank');
-            } else if (methodInfo === 'linkedin') {
-                window.open('https://linkedin.com/in/mohanrammajhi', '_blank');
-            } else if (methodInfo === 'whatsapp') {
-                const message = encodeURIComponent("Hi Mohan! I found your portfolio and would like to connect with you.");
-                const whatsappUrl = `https://wa.me/9779826841278?text=${message}`;
-                window.open(whatsappUrl, '_blank');
-            }
-        });
-        
-        // Add cursor pointer style
-        method.style.cursor = 'pointer';
-    });
-}
-
-// Enhanced Mobile and Touch Device Support
-function initializeMobileEnhancements() {
-    // Touch device detection
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    
-    if (isTouchDevice) {
-        document.body.classList.add('touch-device');
-        
-        // Improve touch interactions for project cards
-        const projectCards = document.querySelectorAll('.project-card');
-        projectCards.forEach(card => {
-            card.addEventListener('touchstart', function() {
-                this.classList.add('touch-active');
-            });
-            
-            card.addEventListener('touchend', function() {
-                this.classList.remove('touch-active');
-            });
-        });
-        
-        // Make project overlays always visible on touch devices
-        const projectOverlays = document.querySelectorAll('.project-overlay');
-        projectOverlays.forEach(overlay => {
-            overlay.style.opacity = '0.9';
-        });
-    }
-    
-    // Viewport height fix for mobile browsers
-    function setViewportHeight() {
-        const vh = window.innerHeight * 0.01;
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
-    }
-    
-    setViewportHeight();
-    window.addEventListener('resize', setViewportHeight);
-    window.addEventListener('orientationchange', setViewportHeight);
-    
-    // Smooth scrolling enhancement for mobile
-    if (window.innerWidth <= 768) {
-        const navLinks = document.querySelectorAll('a[href^="#"]');
-        navLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href');
-                const targetElement = document.querySelector(targetId);
-                
-                if (targetElement) {
-                    const offsetTop = targetElement.offsetTop - 80; // Account for fixed nav
-                    window.scrollTo({
-                        top: offsetTop,
-                        behavior: 'smooth'
-                    });
-                }
-            });
-        });
-    }
-    
-    // Prevent zoom on form inputs for iOS
-    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-        const inputs = document.querySelectorAll('input, textarea, select');
-        inputs.forEach(input => {
-            input.addEventListener('focus', function() {
-                if (input.style.fontSize !== '16px') {
-                    input.style.fontSize = '16px';
-                }
-            });
-        });
-    }
-}
-
-// Responsive image loading
-function initializeResponsiveImages() {
-    const images = document.querySelectorAll('img[data-src]');
-    
-    if ('IntersectionObserver' in window) {
-        const imageObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    img.src = img.dataset.src;
-                    img.classList.remove('lazy');
-                    imageObserver.unobserve(img);
-                }
-            });
-        });
-        
-        images.forEach(img => imageObserver.observe(img));
-    } else {
-        // Fallback for older browsers
-        images.forEach(img => {
-            img.src = img.dataset.src;
-            img.classList.remove('lazy');
-        });
-    }
-}
-
-// Performance optimization for mobile
-function initializePerformanceOptimizations() {
-    // Reduce animations on low-end devices
-    if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) {
-        document.documentElement.style.setProperty('--transition', 'none');
-        document.documentElement.style.setProperty('--transition-fast', 'none');
-        document.documentElement.style.setProperty('--transition-slow', 'none');
-    }
-    
-    // Optimize scroll performance
-    let ticking = false;
-    
-    function updateScrollEffects() {
-        // Your scroll effects here
-        ticking = false;
-    }
-    
-    function requestScrollUpdate() {
-        if (!ticking) {
-            requestAnimationFrame(updateScrollEffects);
-            ticking = true;
-        }
-    }
-    
-    window.addEventListener('scroll', requestScrollUpdate, { passive: true });
-}
-
-// Initialize WhatsApp contact functionality
-initializeWhatsAppContact();
-
-// Initialize contact methods
-initializeContactMethods();
+/*
+ * EMAIL SETUP INSTRUCTIONS:
+ * 
+ * To make the contact form work, you need to set up EmailJS:
+ * 
+ * 1. Go to https://www.emailjs.com/
+ * 2. Create a free account
+ * 3. Set up an email service (Gmail, Outlook, etc.)
+ * 4. Create an email template
+ * 5. Get your Public Key, Service ID, and Template ID
+ * 6. Replace the placeholders in the code:
+ *    - Replace "YOUR_PUBLIC_KEY" with your actual public key
+ *    - Replace "YOUR_SERVICE_ID" with your service ID
+ *    - Replace "YOUR_TEMPLATE_ID" with your template ID
+ * 
+ * Template variables to use in EmailJS:
+ * - {{from_name}} - Sender's name
+ * - {{from_email}} - Sender's email
+ * - {{subject}} - Message subject
+ * - {{message}} - Message content
+ * - {{to_email}} - Your email (reachout.mohan9@gmail.com)
+ * 
+ * If EmailJS fails, the form will fallback to opening the user's email client.
+ */
