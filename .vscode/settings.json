@@ -4,5 +4,13 @@
     "css.lint.vendorPrefix": "ignore",
     "css.lint.unknownProperties": "ignore",
     "edge-tools.validate.css": false,
-    "css.customData": []
+    "css.customData": [],
+    "markdownlint.config": {
+        "MD004": {
+            "style": "dash"
+        },
+        "MD012": false,
+        "MD032": false,
+        "MD034": false
+    }
 }
